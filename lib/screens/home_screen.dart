@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:realm/realm.dart';
 import 'package:schedify/models/shift.dart';
-import 'package:schedify/utils/database.dart';
+import 'package:schedify/screens/shifts_screen.dart';
+import 'package:schedify/utils/shift_manager.dart';
+import 'package:schedify/widgets/ch_text.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,52 +14,155 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  late StreamSubscription<Shift> _shiftStartedSubscription;
+  late StreamSubscription<Shift> _shiftEndedSubscription;
+  late StreamSubscription<Shift> _breakStartedSubscription;
+  late StreamSubscription<Shift> _breakEndedSubscription;
+
+  Shift? _currentShift;
+
   @override
   void initState() {
     super.initState();
 
-    Shift wd = Shift(ObjectId());
-
-    wd.startBreak();
-    wd.endBreak();
-
-    wd.end();
-
-    Database.instance.write(() {
-      Database.instance.add(wd);
-    });
-
-    // clear all
-    // Database.instance.write(() {
-    //   for (var wd in Database.instance.all<WorkDay>()) {
-    //     Database.instance.delete(wd);
-    //   }
-    // });
-
-    test();
+    initSubscriptions();
+    initShift();
   }
 
-  test() async {
-    // wait for 2 sec
-    debugPrint("WAITING FOR 1 SEC");
-    await Future.delayed(const Duration(seconds: 1));
+  @override
+  void dispose() {
+    cancelSubscriptions();
+    super.dispose();
+  }
 
-    debugPrint("Getting all work days");
-    // get all work days
-    var wds = Database.instance.all<Shift>();
-    for (var wd in wds) {
-      debugPrint("Start: ${wd.startDate} - End: ${wd.endDate}.");
-      for (var brk in wd.breaks) {
-        debugPrint("Break Start: ${brk.startDate} - End: ${brk.endDate}.");
-      }
-    }
+  void initSubscriptions() {
+    _shiftStartedSubscription =
+        ShiftManager.instance.onShiftStarted.listen(_onShiftStarted);
+    _shiftEndedSubscription =
+        ShiftManager.instance.onShiftEnded.listen(_onShiftEnded);
+    _breakStartedSubscription =
+        ShiftManager.instance.onBreakStarted.listen(_onBreakStarted);
+    _breakEndedSubscription =
+        ShiftManager.instance.onBreakEnded.listen(_onBreakEnded);
+  }
+
+  void cancelSubscriptions() {
+    _shiftStartedSubscription.cancel();
+    _shiftEndedSubscription.cancel();
+    _breakStartedSubscription.cancel();
+    _breakEndedSubscription.cancel();
+  }
+
+  void initShift() async {
+    Shift? shift = await ShiftManager.instance.getCurrentShift();
+    setState(() {
+      _currentShift = shift;
+    });
+  }
+
+  void _onShiftStarted(Shift shift) {
+    setState(() {
+      _currentShift = shift;
+    });
+  }
+
+  void _onShiftEnded(Shift shift) {
+    setState(() {
+      _currentShift = null;
+    });
+  }
+
+  void _onBreakStarted(Shift shift) {
+    setState(() {
+      _currentShift = shift;
+    });
+  }
+
+  void _onBreakEnded(Shift shift) {
+    setState(() {
+      _currentShift = shift;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
-      body: SafeArea(child: Container(color: Colors.red)),
+      body: SafeArea(
+          child: Container(
+        // color: Colors.green,
+        width: double.infinity,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                backgroundColor: Colors.blue,
+              ),
+              onPressed: () {
+                if (_currentShift == null) {
+                  ShiftManager.instance.startShift();
+                } else {
+                  ShiftManager.instance.endShift();
+                }
+              },
+              child: CHText(
+                _currentShift == null ? 'Start Shift' : 'End Shift',
+                fontColor: Colors.white,
+                fontSize: 20,
+              ),
+            ),
+            if (_currentShift != null)
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  backgroundColor: Colors.blue,
+                ),
+                onPressed: () {
+                  if (_currentShift!.currentBreak == null) {
+                    ShiftManager.instance.startBreak();
+                  } else {
+                    ShiftManager.instance.endBreak();
+                  }
+                },
+                child: CHText(
+                  _currentShift!.currentBreak == null
+                      ? 'Start Break'
+                      : 'End Break',
+                  fontColor: Colors.white,
+                  fontSize: 20,
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(top: 50),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  backgroundColor: Colors.blue,
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => const ShiftsScreen(),
+                  ));
+                },
+                child: const CHText(
+                  'View All',
+                  fontColor: Colors.white,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
+      )),
     );
   }
 }

@@ -16,22 +16,21 @@ class _Shift {
   late _Break? currentBreak;
 
   void start() {
-    Database.realm?.write(() {
-      breaks = [];
+    Database.instance.write(() {
       currentBreak = null;
       startDate ??= DateTime.now();
     });
   }
 
   void end() {
-    Database.realm?.write(() {
-      endDate ??= DateTime.now();
+    Database.instance.write(() {
       currentBreak?.end();
+      endDate ??= DateTime.now();
     });
   }
 
   void startBreak() {
-    Database.realm?.write(() {
+    Database.instance.write(() {
       currentBreak = Break(ObjectId());
       currentBreak!.start();
       breaks.add(currentBreak!);
@@ -39,11 +38,15 @@ class _Shift {
   }
 
   void endBreak() {
-    Database.realm?.write(() {
+    Database.instance.write(() {
       currentBreak?.end();
       currentBreak = null;
     });
   }
+
+  @override
+  String toString() =>
+      "Shift { id: $id, startDate: $startDate, endDate: $endDate\nBreaks: [${breaks.map((br) => br.toString())}]\nCurrentBreak: $currentBreak }";
 }
 
 @RealmModel()
@@ -55,14 +58,14 @@ class _Break {
   late DateTime? endDate;
 
   void start() {
-    Database.realm?.write(() {
-      startDate ??= DateTime.now();
-    });
+    startDate ??= DateTime.now();
   }
 
   void end() {
-    Database.realm?.write(() {
-      endDate ??= DateTime.now();
-    });
+    endDate ??= DateTime.now();
   }
+
+  @override
+  String toString() =>
+      'Break { id: $id, startDate: $startDate, endDate: $endDate }';
 }

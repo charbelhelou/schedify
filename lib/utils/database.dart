@@ -2,13 +2,13 @@ import 'package:realm/realm.dart';
 import 'package:schedify/models/shift.dart';
 
 class Database {
-  static Realm? realm;
+  static Realm? _realm;
 
   static Realm get instance {
-    if (realm == null) {
+    if (_realm == null) {
       _init();
     }
-    return realm!;
+    return _realm!;
   }
 
   Database._();
@@ -25,7 +25,12 @@ class Database {
         // }
       },
     );
-    realm = Realm(config);
+    _realm = Realm(config);
+  }
+
+  static close() {
+    _realm?.close();
+    _realm = null;
   }
 
   // static addDownloadedVideo(DownloadedVideo video) {
