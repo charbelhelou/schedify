@@ -15,6 +15,17 @@ class _Shift {
 
   late _Break? currentBreak;
 
+  Duration get duration {
+    var duration = Duration.zero;
+    if (endDate == null) {
+      duration = DateTime.now().difference(startDate!);
+    } else {
+      duration = endDate!.difference(startDate!);
+    }
+
+    return duration;
+  }
+
   void start() {
     Database.instance.write(() {
       currentBreak = null;
